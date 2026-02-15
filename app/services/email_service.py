@@ -15,6 +15,7 @@ from app.schemas.common import raise_api_error
 from app.schemas.email import SendEmailRequest, SendEmailResponse
 from app.services.ses_client import SESError, ses_client
 from app.utils.email_validator import validate_domain_allowed, validate_email
+from app.utils.html_processor import process_email_html
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,16 @@ async def send_email(db: AsyncSession, request: SendEmailRequest) -> SendEmailRe
         ses_message_id="",  # Will be updated after SES send
     )
 
+    # Process HTML for tracking (rewrite URLs + inject pixel)
+    processed_html = process_email_html(
+        html=request.html_content,
+        message_id=str(message.id),
+        base_url=settings.APP_BASE_URL,
+    )
+
+    # Update message with processed HTML
+    message.html_content = processed_html
+
     # Build sender address (with name if provided)
     if request.from_name:
         source = f"{request.from_name} <{request.from_email}>"
@@ -121,7 +132,7 @@ async def send_email(db: AsyncSession, request: SendEmailRequest) -> SendEmailRe
             source=source,
             to=request.to_email,
             subject=request.subject,
-            html=request.html_content,
+            html=processed_html,  # Use processed HTML with tracking
             text=request.text_content,
             message_id=str(message.id),
         )
