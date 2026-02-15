@@ -238,6 +238,50 @@ class SESClient:
             error_message = e.response.get("Error", {}).get("Message", str(e))
             raise SESError(f"Failed to get domain verification status: {error_message}")
 
+    async def verify_domain_dkim(self, domain: str) -> list[str]:
+        """
+        Initiate DKIM signing for a domain.
+
+        Args:
+            domain: Domain to enable DKIM for
+
+        Returns:
+            List of DKIM tokens (typically 3)
+
+        Raises:
+            SESError: If DKIM verification fails
+        """
+        try:
+            async with self.session.client("ses") as ses:
+                response = await ses.verify_domain_dkim(Domain=domain)
+                return response.get("DkimTokens", [])
+        except ClientError as e:
+            error_message = e.response.get("Error", {}).get("Message", str(e))
+            raise SESError(f"Failed to initiate DKIM verification: {error_message}")
+
+    async def get_domain_dkim_status(self, domain: str) -> dict[str, Any]:
+        """
+        Get DKIM verification status for a domain.
+
+        Args:
+            domain: Domain to check
+
+        Returns:
+            Dictionary with DKIM attributes
+
+        Raises:
+            SESError: If status check fails
+        """
+        try:
+            async with self.session.client("ses") as ses:
+                response = await ses.get_identity_dkim_attributes(
+                    Identities=[domain]
+                )
+                return response.get("DkimAttributes", {}).get(domain, {})
+        except ClientError as e:
+            error_message = e.response.get("Error", {}).get("Message", str(e))
+            raise SESError(f"Failed to get DKIM status: {error_message}")
+
 
 # Global SES client instance
 ses_client = SESClient()

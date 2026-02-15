@@ -13,6 +13,7 @@ from app.models.message import Message
 from app.models.suppression import Suppression
 from app.schemas.common import raise_api_error
 from app.schemas.email import SendEmailRequest, SendEmailResponse
+from app.services.domain_service import is_domain_verified
 from app.services.ses_client import SESError, ses_client
 from app.services.unsubscribe_service import build_unsubscribe_url
 from app.utils.email_validator import validate_domain_allowed, validate_email
@@ -96,6 +97,24 @@ async def send_email(db: AsyncSession, request: SendEmailRequest) -> SendEmailRe
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"suppressed_email": request.to_email},
         )
+
+    # Verify sender domain is verified
+    sender_domain = request.from_email.split("@")[1].lower()
+    # Allow pre-verified domain from config or domains verified in our DB
+    if sender_domain != settings.VERIFIED_DOMAIN:
+        verified = await is_domain_verified(db, sender_domain)
+        if not verified:
+            logger.warning(f"Sender domain not verified: {sender_domain}")
+            raise_api_error(
+                code="SENDER_DOMAIN_NOT_VERIFIED",
+                message=f"Sender domain '{sender_domain}' is not verified. "
+                f"Use POST /api/domains/verify to initiate verification.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                details={
+                    "sender_domain": sender_domain,
+                    "pre_verified_domain": settings.VERIFIED_DOMAIN,
+                },
+            )
 
     # Create message record
     message = Message(

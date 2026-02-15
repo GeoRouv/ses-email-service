@@ -416,17 +416,26 @@ ses-email-service/
 
 **Commit**: `feat: unsubscribe flow with signed tokens`
 
-### Phase 6: Domain Verification (Day 5)
+### Phase 6: Domain Verification (Day 5) ✅ COMPLETED
 **Goal**: Verify sending domains, enforce on send
 
-- [ ] `domain_service.py` — SES API wrapper for domain operations
-- [ ] `POST /api/domains/verify` — call VerifyDomainIdentity + VerifyDomainDkim
-- [ ] `GET /api/domains/:domain/records` — return required DNS records
-- [ ] `GET /api/domains/:domain/status` — check verification + DKIM status from SES
-- [ ] `GET /api/domains` — list all domains from DB
-- [ ] `DELETE /api/domains/:domain` — remove from DB only (document decision)
-- [ ] Add domain verification check to email send flow
-- [ ] Handle pre-verified domain (candidate-test.kubbly.com)
+- [x] `domain_service.py` — SES API wrapper for domain operations
+- [x] `POST /api/domains/verify` — call VerifyDomainIdentity + VerifyDomainDkim
+- [x] `GET /api/domains/:domain/records` — return required DNS records
+- [x] `GET /api/domains/:domain/status` — check verification + DKIM status from SES
+- [x] `GET /api/domains` — list all domains from DB
+- [x] `DELETE /api/domains/:domain` — remove from DB only (document decision)
+- [x] Add domain verification check to email send flow
+- [x] Handle pre-verified domain (candidate-test.kubbly.com)
+
+**Implementation Notes**:
+- SES client extended with `verify_domain_dkim()` and `get_domain_dkim_status()` methods
+- `build_dns_records()` is a pure function that generates TXT + 3 CNAME records from tokens
+- Status refresh queries SES live and updates local DB (sets `verified_at` on first success)
+- Re-verification supported: POST to existing domain refreshes tokens
+- Send flow enforcement: sender domain must be either `VERIFIED_DOMAIN` from config or verified in DB
+- DELETE removes from local DB only — SES state intentionally preserved (per spec decision)
+- Pre-verified domain `candidate-test.kubbly.com` handled via config bypass (no DB lookup needed)
 
 **Commit**: `feat: domain verification and sender authentication`
 
