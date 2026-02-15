@@ -210,3 +210,9 @@ __marimo__/
 .env.local
 *.db
 node_modules/
+
+# Project-specific
+app/static/pixel.gif
+postgres_data/
+*.sqlite
+venv/

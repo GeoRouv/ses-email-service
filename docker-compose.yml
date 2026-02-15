@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  db:
+    image: postgres:16-alpine
+    container_name: ses-email-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ses_email
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ses-network
+
+  # FastAPI application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ses-email-app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/ses_email
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - SES_CONFIGURATION_SET=${SES_CONFIGURATION_SET:-ses-assessment-tracking}
+      - SNS_TOPIC_ARN=${SNS_TOPIC_ARN}
+      - VERIFIED_DOMAIN=${VERIFIED_DOMAIN:-candidate-test.kubbly.com}
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8000}
+      - UNSUBSCRIBE_SECRET=${UNSUBSCRIBE_SECRET:-change-me-in-production}
+      - FALLBACK_REDIRECT_URL=${FALLBACK_REDIRECT_URL:-https://example.com}
+      - ALLOWED_EMAIL_DOMAINS=${ALLOWED_EMAIL_DOMAINS:-kubbly.com}
+      - EMAIL_RATE_LIMIT_PER_HOUR=${EMAIL_RATE_LIMIT_PER_HOUR:-15}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+    networks:
+      - ses-network
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 5 &&
+        echo 'Running migrations...' &&
+        alembic upgrade head &&
+        echo 'Starting application...' &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+volumes:
+  postgres_data:
+
+networks:
+  ses-network:
+    driver: bridge
