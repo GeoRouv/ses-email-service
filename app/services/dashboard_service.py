@@ -86,10 +86,11 @@ async def get_dashboard_metrics(
         )
     ) or 0
 
-    # Calculate rates
+    # Calculate rates (use total_sent as denominator for all rates
+    # so metrics work even before delivery webhooks are processed)
     delivery_rate = round(delivered / total_sent * 100, 1) if total_sent else 0
-    open_rate = round(opened / delivered * 100, 1) if delivered else 0
-    click_rate = round(clicked_messages / delivered * 100, 1) if delivered else 0
+    open_rate = round(opened / total_sent * 100, 1) if total_sent else 0
+    click_rate = round(clicked_messages / total_sent * 100, 1) if total_sent else 0
     bounce_rate = round(bounced / total_sent * 100, 1) if total_sent else 0
 
     return {
