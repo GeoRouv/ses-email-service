@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, Index, String, Text, func
+from sqlalchemy import DateTime, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -82,12 +82,8 @@ class Message(Base):
         cascade="all, delete-orphan",
     )
 
-    # Indexes
-    __table_args__ = (
-        Index("ix_messages_to_email", "to_email"),
-        Index("ix_messages_status", "status"),
-        Index("ix_messages_created_at", "created_at"),
-    )
+    # Note: indexes for to_email, status, created_at are defined via
+    # index=True on their respective column definitions above.
 
     def __repr__(self) -> str:
         return f"<Message(id={self.id}, to={self.to_email}, status={self.status})>"

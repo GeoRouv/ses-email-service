@@ -497,22 +497,55 @@ ses-email-service/
 
 **Commit**: `feat: dashboard UI with metrics, activity, and management views`
 
-### Phase 8: Testing (Day 9)
+### Phase 8: Testing (Day 9) ✅ COMPLETED
 **Goal**: 75%+ coverage, all core logic tested
 
-- [ ] `conftest.py` — async test DB (SQLite in-memory or test Postgres), mock SES client
-- [ ] Unit tests:
-  - email_service: validation, suppression check, retry logic
-  - webhook_service: SNS parsing, all event types, state transitions
-  - tracking_service: URL rewriting, pixel injection, first-open-only
-  - suppression_service: CRUD, duplicate handling
-  - unsubscribe_service: token generation, validation, expiry, masking
-  - domain_service: verification flow
-  - sns_validator: signature verification
-- [ ] Integration test: full send flow (mock SES → verify DB record → simulate webhook → verify status update)
-- [ ] Run coverage: `pytest --cov=app --cov-report=html`
+- [x] `conftest.py` — async test DB (PostgreSQL `ses_email_test`), mock SES client, sample event fixtures
+- [x] Unit tests:
+  - email_service: validation, suppression check, send flow with mocked SES, error handling
+  - webhook_service: all event types, state transitions, auto-suppression, idempotency
+  - tracking_service: open/click recording, first-open-only, click counts
+  - suppression_service: CRUD, duplicate handling, pagination, reason filtering
+  - unsubscribe_service: token generation/validation/expiry, process unsubscribe
+  - domain_service: verification flow, DNS records, status refresh, CRUD
+  - dashboard_service: metrics, daily volume, activity list, message detail, deferred
+  - email_validator: format validation, domain allowlist, extraction
+  - email_masking: various local part lengths
+  - html_processor: URL rewriting, pixel injection, unsubscribe link, sanitization
+  - sns_validator: URL validation, signature string building, certificate fetching/caching, signature verification (valid/invalid/missing fields)
+- [x] Integration test: full send flow (mock SES → verify DB record → simulate delivery/bounce/delay webhooks → verify status updates)
+- [x] Run coverage: `pytest --cov=app --cov-report=term-missing` → **80% (168 tests passing)**
 
-**Commit**: `test: unit and integration tests, 75%+ coverage`
+**Implementation Notes**:
+- Fixed duplicate index definitions in all models: `index=True` on columns AND explicit `Index()` in `__table_args__` caused `DuplicateTableError` during `create_all`
+- Used per-test engine creation to avoid pytest-asyncio event loop mismatch with session-scoped fixtures
+- Tests use transactional sessions with rollback for isolation (no data leaks between tests)
+- SES client mocked via `unittest.mock.patch` to avoid real AWS calls
+- All services tested at 93%+ coverage; all utils at 86%+; sns_validator at 100%
+- Remaining gaps are thin route handlers (HTTP wrappers over tested services) and SES client (intentionally mocked)
+
+**Files Created**:
+- `tests/conftest.py` - Fixtures: DB setup, session, mock SES, sample events
+- `tests/test_email_service.py` - 14 tests
+- `tests/test_webhook_service.py` - 19 tests
+- `tests/test_tracking_service.py` - 13 tests
+- `tests/test_suppression_service.py` - 10 tests
+- `tests/test_unsubscribe_service.py` - 10 tests
+- `tests/test_domain_service.py` - 18 tests
+- `tests/test_dashboard_service.py` - 12 tests
+- `tests/test_email_validator.py` - 13 tests
+- `tests/test_email_masking.py` - 6 tests
+- `tests/test_html_processor.py` - 18 tests
+- `tests/test_sns_validator.py` - 23 tests (URL validation, signature building, cert fetching/caching, signature verification)
+- `tests/test_integration_send.py` - 3 integration tests
+
+**Files Modified**:
+- `app/models/message.py` - Removed duplicate `__table_args__` indexes
+- `app/models/event.py` - Removed duplicate `__table_args__` indexes
+- `app/models/click_event.py` - Removed duplicate `__table_args__` indexes
+- `app/models/suppression.py` - Removed duplicate `__table_args__` indexes
+
+**Commit**: `test: unit and integration tests, 80% coverage (168 tests)`
 
 ### Phase 9: Documentation & Deployment (Day 10)
 **Goal**: Deployed, documented, demo-ready

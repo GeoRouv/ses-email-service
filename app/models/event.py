@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -62,11 +62,8 @@ class Event(Base):
     # Relationships
     message: Mapped["Message"] = relationship("Message", back_populates="events")
 
-    # Indexes
-    __table_args__ = (
-        Index("ix_events_message_id", "message_id"),
-        Index("ix_events_event_type", "event_type"),
-    )
+    # Note: indexes for message_id and event_type are defined via
+    # index=True on their respective column definitions above.
 
     def __repr__(self) -> str:
         return f"<Event(id={self.id}, type={self.event_type}, message_id={self.message_id})>"

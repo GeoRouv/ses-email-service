@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, Text, func
+from sqlalchemy import DateTime, ForeignKey, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -43,8 +43,7 @@ class ClickEvent(Base):
     # Relationships
     message: Mapped["Message"] = relationship("Message", back_populates="click_events")
 
-    # Indexes
-    __table_args__ = (Index("ix_click_events_message_id", "message_id"),)
+    # Note: index for message_id is defined via index=True on the column above.
 
     def __repr__(self) -> str:
         return f"<ClickEvent(id={self.id}, message_id={self.message_id}, url={self.url[:50]})>"

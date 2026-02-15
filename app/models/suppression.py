@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, Index, String, func
+from sqlalchemy import DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -43,8 +43,7 @@ class Suppression(Base):
         nullable=False,
     )
 
-    # Indexes
-    __table_args__ = (Index("ix_suppressions_email", "email", unique=True),)
+    # Note: index for email is defined via index=True + unique=True on the column above.
 
     def __repr__(self) -> str:
         return f"<Suppression(email={self.email}, reason={self.reason})>"
