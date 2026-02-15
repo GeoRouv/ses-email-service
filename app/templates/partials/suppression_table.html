@@ -1,0 +1,99 @@
+<div id="suppression-table">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Added</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            {% for sup in suppressions %}
+            <tr id="sup-row-{{ sup.id }}">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">{{ sup.email }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    {% if sup.reason == 'hard_bounce' %}
+                        <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Hard Bounce</span>
+                    {% elif sup.reason == 'complaint' %}
+                        <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Complaint</span>
+                    {% elif sup.reason == 'unsubscribe' %}
+                        <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Unsubscribe</span>
+                    {% elif sup.reason == 'manual' %}
+                        <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Manual</span>
+                    {% else %}
+                        <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{{ sup.reason }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" title="{{ sup.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}">
+                    {{ sup.created_at.strftime('%b %d, %Y %H:%M') }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <button
+                        hx-delete="/api/suppressions/{{ sup.email }}"
+                        hx-confirm="Remove {{ sup.email }} from suppression list?"
+                        hx-target="#sup-row-{{ sup.id }}"
+                        hx-swap="outerHTML"
+                        class="text-red-600 hover:text-red-800 text-sm font-medium transition">
+                        Remove
+                    </button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="px-6 py-12 text-center text-gray-500">
+                    No suppressed emails found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% if pages > 1 %}
+    <div class="bg-white px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+        <div class="text-sm text-gray-500">
+            Showing {{ ((page - 1) * per_page) + 1 }}–{{ [page * per_page, total] | min }} of {{ total }} suppressions
+        </div>
+        <div class="flex space-x-2">
+            {% if page > 1 %}
+            <button
+                hx-get="/dashboard/suppressions?page={{ page - 1 }}"
+                hx-target="#suppression-table"
+                hx-swap="outerHTML"
+                class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">
+                Previous
+            </button>
+            {% endif %}
+
+            {% for p in range(1, pages + 1) %}
+                {% if p == page %}
+                <span class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md">{{ p }}</span>
+                {% elif p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+                <button
+                    hx-get="/dashboard/suppressions?page={{ p }}"
+                    hx-target="#suppression-table"
+                    hx-swap="outerHTML"
+                    class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">
+                    {{ p }}
+                </button>
+                {% elif p == 2 or p == pages - 1 %}
+                <span class="px-3 py-1.5 text-sm text-gray-400">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if page < pages %}
+            <button
+                hx-get="/dashboard/suppressions?page={{ page + 1 }}"
+                hx-target="#suppression-table"
+                hx-swap="outerHTML"
+                class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">
+                Next
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>

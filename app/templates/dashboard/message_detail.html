@@ -1,0 +1,205 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Message Detail{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-6">
+    <a href="/dashboard/activity" class="text-blue-600 hover:text-blue-800 text-sm transition">
+        &larr; Back to Activity
+    </a>
+</div>
+
+<!-- Message Header -->
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="flex items-start justify-between">
+        <div>
+            <h2 class="text-xl font-bold text-gray-800">{{ message.subject }}</h2>
+            <p class="text-gray-500 mt-1">Message ID: <code class="text-xs bg-gray-100 px-2 py-0.5 rounded">{{ message.id }}</code></p>
+        </div>
+        <div>
+            {% if message.status == 'sent' %}
+                <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">Sent</span>
+            {% elif message.status == 'delivered' %}
+                <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">Delivered</span>
+            {% elif message.status == 'bounced' %}
+                <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">Bounced</span>
+            {% elif message.status == 'deferred' %}
+                <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">Deferred</span>
+            {% elif message.status == 'complained' %}
+                <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">Complained</span>
+            {% elif message.status == 'rejected' %}
+                <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-gray-800 text-white">Rejected</span>
+            {% else %}
+                <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">{{ message.status }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <div>
+            <p class="text-xs text-gray-400 uppercase">To</p>
+            <p class="text-sm font-medium text-gray-800 mt-0.5">{{ message.to_email }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase">From</p>
+            <p class="text-sm font-medium text-gray-800 mt-0.5">
+                {% if message.from_name %}{{ message.from_name }} &lt;{{ message.from_email }}&gt;{% else %}{{ message.from_email }}{% endif %}
+            </p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase">Sent At</p>
+            <p class="text-sm font-medium text-gray-800 mt-0.5">{{ message.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase">SES Message ID</p>
+            <p class="text-sm font-medium text-gray-800 mt-0.5 truncate" title="{{ message.ses_message_id }}">{{ message.ses_message_id }}</p>
+        </div>
+    </div>
+
+    <!-- Tracking Info -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
+        <div>
+            <p class="text-xs text-gray-400 uppercase">Opened</p>
+            <p class="text-sm mt-0.5">
+                {% if message.opened_at %}
+                    <span class="text-green-600 font-medium">{{ message.opened_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
+                {% else %}
+                    <span class="text-gray-400">Not opened</span>
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase">First Deferred</p>
+            <p class="text-sm mt-0.5">
+                {% if message.first_deferred_at %}
+                    <span class="text-yellow-600 font-medium">{{ message.first_deferred_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
+                {% else %}
+                    <span class="text-gray-400">N/A</span>
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase">Last Updated</p>
+            <p class="text-sm font-medium text-gray-800 mt-0.5">{{ message.updated_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase">Metadata</p>
+            <p class="text-sm mt-0.5">
+                {% if message.message_metadata %}
+                    <code class="text-xs bg-gray-100 px-2 py-0.5 rounded">{{ message.message_metadata | tojson }}</code>
+                {% else %}
+                    <span class="text-gray-400">None</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Events Timeline -->
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Event Timeline</h3>
+
+    {% if events %}
+    <div class="space-y-4">
+        {% for event in events %}
+        <div class="flex items-start space-x-3">
+            <!-- Event type icon -->
+            <div class="flex-shrink-0 mt-0.5">
+                {% if event.event_type == 'delivery' %}
+                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                {% elif event.event_type == 'bounce' %}
+                    <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                {% elif event.event_type == 'complaint' %}
+                    <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                {% elif event.event_type == 'delay' %}
+                    <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                {% elif event.event_type == 'reject' %}
+                    <div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                        </svg>
+                    </div>
+                {% else %}
+                    <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Event details -->
+            <div class="flex-1">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-gray-800 capitalize">{{ event.event_type }}</p>
+                    <p class="text-xs text-gray-400">{{ event.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') }}</p>
+                </div>
+                {% if event.bounce_type %}
+                    <p class="text-sm text-gray-600 mt-0.5">Type: <span class="font-medium">{{ event.bounce_type }}</span></p>
+                {% endif %}
+                {% if event.bounce_reason %}
+                    <p class="text-sm text-gray-500 mt-0.5">{{ event.bounce_reason }}</p>
+                {% endif %}
+                {% if event.delay_type %}
+                    <p class="text-sm text-gray-600 mt-0.5">Type: <span class="font-medium">{{ event.delay_type }}</span></p>
+                {% endif %}
+                {% if event.delay_reason %}
+                    <p class="text-sm text-gray-500 mt-0.5">{{ event.delay_reason }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-sm">No SES events recorded yet.</p>
+    {% endif %}
+</div>
+
+<!-- Click Events -->
+<div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Click Events</h3>
+
+    {% if click_events %}
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">URL</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Clicked At</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+            {% for click in click_events %}
+            <tr>
+                <td class="px-4 py-3 text-sm text-blue-600 truncate max-w-lg" title="{{ click.url }}">
+                    <a href="{{ click.url }}" target="_blank" rel="noopener" class="hover:underline">{{ click.url }}</a>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                    {{ click.clicked_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-500 text-sm">No clicks recorded.</p>
+    {% endif %}
+</div>
+{% endblock %}

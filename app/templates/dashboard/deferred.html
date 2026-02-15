@@ -1,0 +1,99 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Deferred Emails{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">Deferred Emails</h2>
+        <p class="text-gray-500 mt-1">{{ total }} deferred message{{ 's' if total != 1 else '' }}</p>
+    </div>
+    <button onclick="window.location.reload()"
+            class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 transition">
+        Refresh
+    </button>
+</div>
+
+<!-- Info Banner -->
+<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+    <div class="flex items-start">
+        <svg class="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+            <p class="text-sm text-yellow-800 font-medium">About Deferred Emails</p>
+            <p class="text-sm text-yellow-700 mt-1">
+                SES automatically retries deferred emails for up to 12 hours. If delivery succeeds, the status
+                will update to "delivered" via webhook. No manual intervention is needed in most cases.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Deferred Emails Table -->
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipient</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Deferred</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Waiting</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delay Reason</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            {% for msg in messages %}
+            <tr class="hover:bg-gray-50 cursor-pointer transition"
+                onclick="window.location='/dashboard/activity/{{ msg.id }}'">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">{{ msg.to_email }}</div>
+                    <div class="text-xs text-gray-400">{{ msg.from_email }}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm text-gray-900 truncate max-w-xs">{{ msg.subject }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {% if msg.first_deferred_at %}
+                        {{ msg.first_deferred_at.strftime('%b %d, %H:%M UTC') }}
+                    {% else %}
+                        <span class="text-gray-400">Unknown</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    {% if msg.first_deferred_at %}
+                        {% set delta = now - msg.first_deferred_at %}
+                        {% set hours = (delta.total_seconds() // 3600) | int %}
+                        {% set minutes = ((delta.total_seconds() % 3600) // 60) | int %}
+                        {% if hours > 0 %}
+                            <span class="{% if hours >= 10 %}text-red-600 font-medium{% elif hours >= 4 %}text-yellow-600{% else %}text-gray-600{% endif %}">
+                                {{ hours }}h {{ minutes }}m
+                            </span>
+                        {% else %}
+                            <span class="text-gray-600">{{ minutes }}m</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-gray-400">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500">
+                    {% if msg.delay_reason %}
+                        <span class="truncate max-w-xs block" title="{{ msg.delay_reason }}">{{ msg.delay_reason }}</span>
+                    {% elif msg.delay_type %}
+                        <span>{{ msg.delay_type }}</span>
+                    {% else %}
+                        <span class="text-gray-400">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                    No deferred emails. All messages have been delivered or bounced.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

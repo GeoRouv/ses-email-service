@@ -1,0 +1,122 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Domains{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">Domain Management</h2>
+        <p class="text-gray-500 mt-1">{{ total }} domain{{ 's' if total != 1 else '' }} configured</p>
+    </div>
+    <button
+        onclick="document.getElementById('add-domain-modal').classList.remove('hidden')"
+        class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition">
+        Add Domain
+    </button>
+</div>
+
+<!-- Domain List -->
+{% include "partials/domain_list.html" %}
+
+<!-- Add Domain Modal -->
+<div id="add-domain-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+             onclick="document.getElementById('add-domain-modal').classList.add('hidden')"></div>
+
+        <!-- Modal -->
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 z-10">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Verify New Domain</h3>
+
+            <form id="add-domain-form">
+                <div class="mb-4">
+                    <label for="domain-input" class="block text-sm font-medium text-gray-700 mb-1">Domain Name</label>
+                    <input type="text" id="domain-input" name="domain" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="example.com">
+                    <p class="text-xs text-gray-400 mt-1">This will initiate SES domain verification</p>
+                </div>
+                <div id="domain-result" class="mb-4"></div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button"
+                            onclick="document.getElementById('add-domain-modal').classList.add('hidden')"
+                            class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700 transition">
+                        Verify Domain
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Brief visual feedback could be added here
+    });
+}
+
+// Handle add domain form
+document.getElementById('add-domain-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const domain = document.getElementById('domain-input').value;
+    const resultDiv = document.getElementById('domain-result');
+
+    resultDiv.innerHTML = '<p class="text-gray-500 text-sm">Initiating verification...</p>';
+
+    try {
+        const response = await fetch('/api/domains/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain }),
+        });
+
+        if (response.ok) {
+            resultDiv.innerHTML = '<p class="text-green-600 text-sm">Verification initiated! Configure the DNS records shown below.</p>';
+            document.getElementById('domain-input').value = '';
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            const data = await response.json();
+            const msg = data.error?.message || 'Failed to initiate verification';
+            resultDiv.innerHTML = '<p class="text-red-600 text-sm">' + msg + '</p>';
+        }
+    } catch (err) {
+        resultDiv.innerHTML = '<p class="text-red-600 text-sm">Request failed. Please try again.</p>';
+    }
+});
+
+// Handle Check Status HTMX response — update status badges inline
+document.body.addEventListener('htmx:afterRequest', function(evt) {
+    const path = evt.detail.requestConfig.path;
+    if (path && path.includes('/status') && evt.detail.successful) {
+        try {
+            const data = JSON.parse(evt.detail.xhr.responseText);
+            const targetId = evt.detail.target.id;
+            const status = data.verification_status || 'Unknown';
+            const dkim = data.dkim_status || 'Unknown';
+
+            let html = '<p class="text-sm text-gray-600">';
+            html += 'Verification: <span class="font-medium">' + status + '</span>';
+            html += ' | DKIM: <span class="font-medium">' + dkim + '</span>';
+            if (data.verified_at) {
+                html += ' | Verified: ' + data.verified_at;
+            }
+            html += '</p>';
+            evt.detail.target.innerHTML = html;
+        } catch (e) {
+            // Non-JSON response, leave as-is
+        }
+    }
+});
+</script>
+{% endblock %}

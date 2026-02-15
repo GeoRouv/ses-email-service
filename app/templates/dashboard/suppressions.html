@@ -1,0 +1,125 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Suppressions{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">Suppression List</h2>
+        <p class="text-gray-500 mt-1">{{ total }} suppressed email{{ 's' if total != 1 else '' }}</p>
+    </div>
+    <button
+        onclick="document.getElementById('add-modal').classList.remove('hidden')"
+        class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition">
+        Add Email
+    </button>
+</div>
+
+<!-- Suppression Table -->
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    {% include "partials/suppression_table.html" %}
+</div>
+
+<!-- Add Email Modal -->
+<div id="add-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+             onclick="document.getElementById('add-modal').classList.add('hidden')"></div>
+
+        <!-- Modal -->
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 z-10">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Add Email to Suppression List</h3>
+
+            <form id="add-suppression-form"
+                  hx-post="/api/suppressions"
+                  hx-target="#suppression-result"
+                  hx-swap="innerHTML"
+                  hx-headers='{"Content-Type": "application/json"}'
+                  hx-ext="json-enc">
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input type="email" id="email" name="email" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="user@example.com">
+                </div>
+                <div class="mb-4">
+                    <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                    <select id="reason" name="reason" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="manual">Manual</option>
+                        <option value="hard_bounce">Hard Bounce</option>
+                        <option value="complaint">Complaint</option>
+                        <option value="unsubscribe">Unsubscribe</option>
+                    </select>
+                </div>
+                <div id="suppression-result" class="mb-4"></div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button"
+                            onclick="document.getElementById('add-modal').classList.add('hidden')"
+                            class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700 transition">
+                        Add to List
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Handle the add suppression form submission with plain fetch (HTMX json-enc extension not loaded)
+document.getElementById('add-suppression-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('email').value;
+    const reason = document.getElementById('reason').value;
+    const resultDiv = document.getElementById('suppression-result');
+
+    try {
+        const response = await fetch('/api/suppressions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, reason }),
+        });
+
+        if (response.ok) {
+            resultDiv.innerHTML = '<p class="text-green-600 text-sm">Email added to suppression list.</p>';
+            document.getElementById('email').value = '';
+            // Reload the table after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 800);
+        } else {
+            const data = await response.json();
+            const msg = data.error?.message || 'Failed to add email';
+            resultDiv.innerHTML = '<p class="text-red-600 text-sm">' + msg + '</p>';
+        }
+    } catch (err) {
+        resultDiv.innerHTML = '<p class="text-red-600 text-sm">Request failed. Please try again.</p>';
+    }
+});
+
+// Handle HTMX delete responses - remove the row on success
+document.body.addEventListener('htmx:afterRequest', function(evt) {
+    if (evt.detail.requestConfig.verb === 'delete') {
+        if (evt.detail.successful) {
+            // Row was deleted — the hx-target removes it. Refresh count.
+            const countEl = document.querySelector('p.text-gray-500.mt-1');
+            if (countEl) {
+                const match = countEl.textContent.match(/\d+/);
+                if (match) {
+                    const newCount = parseInt(match[0]) - 1;
+                    countEl.textContent = newCount + ' suppressed email' + (newCount !== 1 ? 's' : '');
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -439,39 +439,61 @@ ses-email-service/
 
 **Commit**: `feat: domain verification and sender authentication`
 
-### Phase 7: Dashboard UI (Day 6-8)
+### Phase 7: Dashboard UI (Day 6-8) ✅ COMPLETED
 **Goal**: Full admin dashboard with all views
 
-#### 7a: Layout & Metrics Overview
-- [ ] `base.html` — Tailwind layout, sidebar nav (Dashboard, Activity, Suppressions, Domains, Deferred)
-- [ ] `index.html` — 6 metric cards (Total Sent, Delivery Rate, Open Rate, Click Rate, Bounce Rate, Deferred Count)
-- [ ] Dashboard data endpoint: `GET /api/dashboard/metrics?days=7`
-- [ ] Chart.js time series: daily email volume (sent, delivered, bounced)
+#### 7a: Layout & Metrics Overview ✅
+- [x] `base.html` — Tailwind layout, sidebar nav (Dashboard, Activity, Suppressions, Domains, Deferred)
+- [x] `index.html` — 6 metric cards (Total Sent, Delivery Rate, Open Rate, Click Rate, Bounce Rate, Deferred Count)
+- [x] Dashboard data endpoint: `GET /api/dashboard/metrics?days=7`
+- [x] Chart.js time series: daily email volume (sent, delivered, bounced)
 
-#### 7b: Activity List
-- [ ] Paginated table (25/page)
-- [ ] Status badges with colors (gray=sent, green=delivered, red=bounced, yellow=deferred, purple=complained, dark=rejected)
-- [ ] Click row → message detail page (all events, metadata, timestamps)
-- [ ] HTMX pagination (no full page reload)
+#### 7b: Activity List ✅
+- [x] Paginated table (25/page)
+- [x] Status badges with colors (gray=sent, green=delivered, red=bounced, yellow=deferred, purple=complained, dark=rejected)
+- [x] Click row → message detail page (all events, metadata, timestamps)
+- [x] HTMX pagination (no full page reload)
 
-#### 7c: Suppression List View
-- [ ] Table with email, reason, date
-- [ ] "Add Email" button → HTMX modal with form
-- [ ] "Remove" button with confirmation dialog
-- [ ] Pagination
+#### 7c: Suppression List View ✅
+- [x] Table with email, reason, date
+- [x] "Add Email" button → modal with form (fetch-based, not HTMX json-enc)
+- [x] "Remove" button with HTMX confirmation dialog
+- [x] Pagination
 
-#### 7d: Domain Management
-- [ ] List all domains with status badges
-- [ ] "Add Domain" → modal form
-- [ ] DNS records display (copyable with click)
-- [ ] "Check Status" button (HTMX inline refresh)
-- [ ] "Delete" with confirmation
+#### 7d: Domain Management ✅
+- [x] List all domains with status badges
+- [x] "Add Domain" → modal form
+- [x] DNS records display (copyable with click via clipboard API)
+- [x] "Check Status" button (HTMX inline refresh, parses JSON response)
+- [x] "Delete" with HTMX confirmation
 
-#### 7e: Deferred Emails View
-- [ ] Filter activity by deferred status
-- [ ] Show delay reason, time since first deferral
-- [ ] Manual refresh button
-- [ ] Note about SES 12-hour auto-retry
+#### 7e: Deferred Emails View ✅
+- [x] Filter activity by deferred status
+- [x] Show delay reason, time since first deferral (color-coded by severity)
+- [x] Manual refresh button
+- [x] Info banner about SES 12-hour auto-retry
+
+**Implementation Notes**:
+- Used Jinja2 dict key `messages` instead of `items` in activity view to avoid collision with Python dict `.items()` method
+- Suppression and domain "Add" modals use plain `fetch()` instead of HTMX json-enc extension to avoid additional CDN dependency
+- HTMX partial responses: routes check `HX-Request` header and return only the partial template for pagination
+- Deferred view enriches messages with latest delay event info (delay_type, delay_reason) from events table
+- All sidebar navigation correctly highlights the active page via `active_page` template variable
+- Domain list shows DNS records inline with copy-to-clipboard functionality
+
+**Files Created**:
+- `app/templates/dashboard/activity.html` - Activity list page
+- `app/templates/dashboard/message_detail.html` - Message detail page with events/clicks
+- `app/templates/dashboard/suppressions.html` - Suppression management page with add modal
+- `app/templates/dashboard/domains.html` - Domain management page with add modal
+- `app/templates/dashboard/deferred.html` - Deferred emails view
+- `app/templates/partials/activity_table.html` - HTMX partial for activity pagination
+- `app/templates/partials/suppression_table.html` - HTMX partial for suppression pagination
+- `app/templates/partials/domain_list.html` - Domain cards with DNS records
+
+**Files Modified**:
+- `app/services/dashboard_service.py` - Added `get_activity_list()`, `get_message_detail()`, `get_deferred_messages()`
+- `app/routes/dashboard.py` - Added activity, message detail, suppressions, domains, deferred routes
 
 **Commit**: `feat: dashboard UI with metrics, activity, and management views`
 
