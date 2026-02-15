@@ -370,16 +370,24 @@ ses-email-service/
 
 **Commit**: `feat: click and open tracking with URL rewriting`
 
-### Phase 4: Suppression List (Day 3-4)
+### Phase 4: Suppression List (Day 3-4) ✅ COMPLETED
 **Goal**: Full CRUD suppression management
 
-- [ ] `suppression_service.py` — CRUD operations
-- [ ] `GET /api/suppressions` — paginated list with reason filter
-- [ ] `POST /api/suppressions` — manual add (validate email, check duplicates)
-- [ ] `DELETE /api/suppressions/:email` — remove (204/404)
-- [ ] `GET /api/suppressions/check/:email` — simple lookup (fix spec bug)
-- [ ] Verify: auto-suppression from webhooks (Phase 2) still works
-- [ ] Verify: send API rejects suppressed recipients
+- [x] `suppression_service.py` — CRUD operations
+- [x] `GET /api/suppressions` — paginated list with reason filter
+- [x] `POST /api/suppressions` — manual add (validate email, check duplicates)
+- [x] `DELETE /api/suppressions/:email` — remove (204/404)
+- [x] `GET /api/suppressions/check/:email` — simple lookup (fix spec bug)
+- [x] Verify: auto-suppression from webhooks (Phase 2) still works
+- [x] Verify: send API rejects suppressed recipients
+
+**Implementation Notes**:
+- Suppression service includes comprehensive error handling with proper API error responses
+- Email validation uses same validator as email send flow for consistency
+- Race condition handling with IntegrityError catch on duplicate inserts
+- Integration verified: webhooks auto-suppress on hard_bounce and complaint (idempotent)
+- Integration verified: email send rejects with EMAIL_SUPPRESSED error code
+- All routes include comprehensive OpenAPI documentation with examples
 
 **Commit**: `feat: suppression list management API`
 
