@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsubscribe Confirmation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-md max-w-md w-full p-8 text-center">
+        <div class="mb-6">
+            <svg class="w-16 h-16 mx-auto text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            </svg>
+        </div>
+
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Unsubscribe</h1>
+
+        <p class="text-gray-600 mb-6">
+            Are you sure you want to unsubscribe
+            <strong class="text-gray-800">{{ masked_email }}</strong>
+            from future emails?
+        </p>
+
+        <form method="POST" action="/unsubscribe/{{ token }}">
+            <button type="submit"
+                    class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                Confirm Unsubscribe
+            </button>
+        </form>
+
+        <p class="text-sm text-gray-400 mt-6">
+            If you didn't request this, you can safely ignore this page.
+        </p>
+    </div>
+</body>
+</html>

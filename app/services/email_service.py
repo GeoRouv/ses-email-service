@@ -14,6 +14,7 @@ from app.models.suppression import Suppression
 from app.schemas.common import raise_api_error
 from app.schemas.email import SendEmailRequest, SendEmailResponse
 from app.services.ses_client import SESError, ses_client
+from app.services.unsubscribe_service import build_unsubscribe_url
 from app.utils.email_validator import validate_domain_allowed, validate_email
 from app.utils.html_processor import process_email_html
 
@@ -110,11 +111,18 @@ async def send_email(db: AsyncSession, request: SendEmailRequest) -> SendEmailRe
         ses_message_id="",  # Will be updated after SES send
     )
 
-    # Process HTML for tracking (rewrite URLs + inject pixel)
+    # Generate unsubscribe URL for this message
+    unsubscribe_url = build_unsubscribe_url(
+        email=request.to_email,
+        message_id=str(message.id),
+    )
+
+    # Process HTML for tracking (rewrite URLs + unsubscribe link + pixel)
     processed_html = process_email_html(
         html=request.html_content,
         message_id=str(message.id),
         base_url=settings.APP_BASE_URL,
+        unsubscribe_url=unsubscribe_url,
     )
 
     # Update message with processed HTML
@@ -126,7 +134,7 @@ async def send_email(db: AsyncSession, request: SendEmailRequest) -> SendEmailRe
     else:
         source = request.from_email
 
-    # Send via SES
+    # Send via SES (with List-Unsubscribe header)
     try:
         ses_message_id = await ses_client.send_email(
             source=source,
@@ -135,6 +143,7 @@ async def send_email(db: AsyncSession, request: SendEmailRequest) -> SendEmailRe
             html=processed_html,  # Use processed HTML with tracking
             text=request.text_content,
             message_id=str(message.id),
+            unsubscribe_url=unsubscribe_url,
         )
 
         # Strip angle brackets if present (SES sometimes includes them)

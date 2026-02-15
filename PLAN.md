@@ -391,19 +391,28 @@ ses-email-service/
 
 **Commit**: `feat: suppression list management API`
 
-### Phase 5: Unsubscribe Flow (Day 4)
+### Phase 5: Unsubscribe Flow (Day 4) ✅ COMPLETED
 **Goal**: Recipients can unsubscribe via secure link
 
-- [ ] `unsubscribe_service.py` — JWT token generation and validation
+- [x] `unsubscribe_service.py` — JWT token generation and validation
   - Payload: `{ email, message_id, iat, exp }` (30-day expiry)
   - Sign with HMAC secret from env
-- [ ] Integrate unsubscribe link into email send flow (append to HTML)
-- [ ] `GET /unsubscribe/:token` — validate, show confirmation page (masked email)
-- [ ] `POST /unsubscribe/:token` — process unsubscribe, add to suppressions
-- [ ] Jinja templates: confirm.html, success.html, error.html
-- [ ] Email masking utility: `john@example.com` → `j***@example.com`
-- [ ] Double-submit prevention (check suppression list before processing)
-- [ ] List-Unsubscribe header on sent emails (bonus — email clients show unsub button)
+- [x] Integrate unsubscribe link into email send flow (append to HTML)
+- [x] `GET /unsubscribe/:token` — validate, show confirmation page (masked email)
+- [x] `POST /unsubscribe/:token` — process unsubscribe, add to suppressions
+- [x] Jinja templates: confirm.html, success.html, error.html
+- [x] Email masking utility: `john@example.com` → `j***@example.com`
+- [x] Double-submit prevention (check suppression list before processing)
+- [x] List-Unsubscribe header on sent emails (bonus — email clients show unsub button)
+
+**Implementation Notes**:
+- SES client uses `send_raw_email` (MIME) to include `List-Unsubscribe` and `List-Unsubscribe-Post` headers
+- Unsubscribe link injected into HTML body between content and tracking pixel (not click-tracked)
+- HTML processing order: URL rewriting → unsubscribe link → tracking pixel
+- `email_masking.py` utility in `app/utils/` as a pure function (no DB, no side effects)
+- Unsubscribe routes mounted without `/api` prefix (user-facing pages, not API)
+- Templates use Tailwind CSS via CDN for styling
+- Idempotent: double-submit shows success page, doesn't create duplicate suppressions
 
 **Commit**: `feat: unsubscribe flow with signed tokens`
 

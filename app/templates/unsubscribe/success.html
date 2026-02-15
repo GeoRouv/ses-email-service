@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsubscribed Successfully</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-md max-w-md w-full p-8 text-center">
+        <div class="mb-6">
+            <svg class="w-16 h-16 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">You've Been Unsubscribed</h1>
+
+        <p class="text-gray-600 mb-2">
+            <strong class="text-gray-800">{{ masked_email }}</strong>
+            has been removed from our mailing list.
+        </p>
+
+        <p class="text-gray-500 text-sm">
+            You will no longer receive emails from us.
+        </p>
+    </div>
+</body>
+</html>

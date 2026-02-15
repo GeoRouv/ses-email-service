@@ -105,20 +105,73 @@ def inject_tracking_pixel(html: str, message_id: str, base_url: str) -> str:
         return html
 
 
-def process_email_html(html: str, message_id: str, base_url: str) -> str:
+def inject_unsubscribe_link(html: str, unsubscribe_url: str) -> str:
     """
-    Process email HTML for tracking (rewrite URLs + inject pixel).
+    Inject an unsubscribe link at the bottom of the email HTML.
+
+    Adds a small, muted unsubscribe link before </body> or at the end.
+    This link goes directly to the unsubscribe page (not tracked).
+
+    Args:
+        html: HTML content to process
+        unsubscribe_url: Full unsubscribe URL with signed token
+
+    Returns:
+        HTML with unsubscribe link injected
+    """
+    try:
+        unsub_block = (
+            '<div style="text-align:center;padding:20px 0 10px;'
+            'font-size:12px;color:#999;">'
+            '<a href="' + unsubscribe_url + '" '
+            'style="color:#999;text-decoration:underline;">'
+            "Unsubscribe from these emails</a>"
+            "</div>"
+        )
+
+        if "</body>" in html.lower():
+            html = html.replace("</body>", f"{unsub_block}</body>", 1)
+            html = html.replace("</BODY>", f"{unsub_block}</BODY>", 1)
+        else:
+            html = html + unsub_block
+
+        logger.debug("Injected unsubscribe link")
+        return html
+
+    except Exception as e:
+        logger.error(f"Error injecting unsubscribe link: {str(e)}")
+        return html
+
+
+def process_email_html(
+    html: str,
+    message_id: str,
+    base_url: str,
+    unsubscribe_url: str | None = None,
+) -> str:
+    """
+    Process email HTML for tracking (rewrite URLs + unsubscribe + pixel).
+
+    Processing order:
+    1. Rewrite URLs for click tracking
+    2. Inject unsubscribe link (direct, not tracked)
+    3. Inject tracking pixel
 
     Args:
         html: HTML content to process
         message_id: Message ID for tracking
         base_url: Base URL of the application
+        unsubscribe_url: Optional unsubscribe URL to inject
 
     Returns:
         Processed HTML with tracking enabled
     """
     # Rewrite URLs for click tracking
     html = rewrite_urls(html, message_id, base_url)
+
+    # Inject unsubscribe link (before pixel, not tracked)
+    if unsubscribe_url:
+        html = inject_unsubscribe_link(html, unsubscribe_url)
 
     # Inject tracking pixel for open tracking
     html = inject_tracking_pixel(html, message_id, base_url)

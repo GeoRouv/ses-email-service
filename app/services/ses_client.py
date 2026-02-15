@@ -1,6 +1,8 @@
 """AWS SES client wrapper for async email sending."""
 
 import logging
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Any
 
 import aioboto3
@@ -49,17 +51,22 @@ class SESClient:
         html: str,
         text: str | None = None,
         message_id: str | None = None,
+        unsubscribe_url: str | None = None,
     ) -> str:
         """
         Send an email via AWS SES with retry logic.
+
+        Uses send_raw_email when unsubscribe_url is provided (to include
+        List-Unsubscribe header), otherwise uses send_email for simplicity.
 
         Args:
             source: Sender email address (e.g., "sender@example.com" or "Name <email@example.com>")
             to: Recipient email address
             subject: Email subject
             html: HTML email body
-            text: Plain text email body (optional, falls back to stripped HTML)
+            text: Plain text email body (optional)
             message_id: Optional message ID to tag in SES
+            unsubscribe_url: Optional unsubscribe URL for List-Unsubscribe header
 
         Returns:
             SES MessageId (used for webhook correlation)
@@ -69,40 +76,19 @@ class SESClient:
         """
         try:
             async with self.session.client("ses") as ses:
-                # Build email message
-                message: dict[str, Any] = {
-                    "Subject": {"Data": subject},
-                    "Body": {"Html": {"Data": html}},
-                }
+                if unsubscribe_url:
+                    # Use send_raw_email to include List-Unsubscribe header
+                    ses_message_id = await self._send_raw_email(
+                        ses, source, to, subject, html, text,
+                        message_id, unsubscribe_url,
+                    )
+                else:
+                    # Use simple send_email API
+                    ses_message_id = await self._send_simple_email(
+                        ses, source, to, subject, html, text, message_id,
+                    )
 
-                # Add text body if provided
-                if text:
-                    message["Body"]["Text"] = {"Data": text}
-
-                # Build send_email params
-                params: dict[str, Any] = {
-                    "Source": source,
-                    "Destination": {"ToAddresses": [to]},
-                    "Message": message,
-                }
-
-                # Add configuration set for tracking
-                if self.configuration_set:
-                    params["ConfigurationSetName"] = self.configuration_set
-
-                # Add tags for correlation
-                if message_id:
-                    params["Tags"] = [
-                        {"Name": "AppMessageId", "Value": message_id},
-                    ]
-
-                logger.info(f"Sending email to {to} with subject: {subject}")
-
-                response = await ses.send_email(**params)
-
-                ses_message_id = response["MessageId"]
                 logger.info(f"Email sent successfully. SES MessageId: {ses_message_id}")
-
                 return ses_message_id
 
         except ClientError as e:
@@ -111,7 +97,6 @@ class SESClient:
 
             logger.error(f"SES send failed: {error_code} - {error_message}")
 
-            # Map SES errors to friendly messages
             if error_code == "MessageRejected":
                 raise SESError(f"Email rejected by SES: {error_message}")
             elif error_code == "MailFromDomainNotVerified":
@@ -126,6 +111,88 @@ class SESClient:
         except Exception as e:
             logger.error(f"Unexpected error sending email: {str(e)}")
             raise SESError(f"Failed to send email: {str(e)}")
+
+    async def _send_simple_email(
+        self,
+        ses: Any,
+        source: str,
+        to: str,
+        subject: str,
+        html: str,
+        text: str | None,
+        message_id: str | None,
+    ) -> str:
+        """Send using the simple SES send_email API."""
+        message: dict[str, Any] = {
+            "Subject": {"Data": subject},
+            "Body": {"Html": {"Data": html}},
+        }
+
+        if text:
+            message["Body"]["Text"] = {"Data": text}
+
+        params: dict[str, Any] = {
+            "Source": source,
+            "Destination": {"ToAddresses": [to]},
+            "Message": message,
+        }
+
+        if self.configuration_set:
+            params["ConfigurationSetName"] = self.configuration_set
+
+        if message_id:
+            params["Tags"] = [
+                {"Name": "AppMessageId", "Value": message_id},
+            ]
+
+        logger.info(f"Sending email to {to} with subject: {subject}")
+        response = await ses.send_email(**params)
+        return response["MessageId"]
+
+    async def _send_raw_email(
+        self,
+        ses: Any,
+        source: str,
+        to: str,
+        subject: str,
+        html: str,
+        text: str | None,
+        message_id: str | None,
+        unsubscribe_url: str,
+    ) -> str:
+        """Send using SES send_raw_email API to include custom headers."""
+        # Build MIME message
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = source
+        msg["To"] = to
+        msg["List-Unsubscribe"] = f"<{unsubscribe_url}>"
+        msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
+
+        # Add text part
+        if text:
+            msg.attach(MIMEText(text, "plain", "utf-8"))
+
+        # Add HTML part
+        msg.attach(MIMEText(html, "html", "utf-8"))
+
+        params: dict[str, Any] = {
+            "Source": source,
+            "Destinations": [to],
+            "RawMessage": {"Data": msg.as_string()},
+        }
+
+        if self.configuration_set:
+            params["ConfigurationSetName"] = self.configuration_set
+
+        if message_id:
+            params["Tags"] = [
+                {"Name": "AppMessageId", "Value": message_id},
+            ]
+
+        logger.info(f"Sending raw email to {to} with subject: {subject}")
+        response = await ses.send_raw_email(**params)
+        return response["MessageId"]
 
     async def verify_domain(self, domain: str) -> str:
         """
