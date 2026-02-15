@@ -65,9 +65,13 @@ def create_app() -> FastAPI:
             "health": "/health",
         }
 
-    # Mount routes (will be added in later phases)
-    # from app.routes import emails, webhooks, tracking, suppressions, domains, unsubscribe, dashboard
-    # app.include_router(emails.router, prefix="/api", tags=["Emails"])
+    # Mount routes
+    from app.routes import emails
+
+    app.include_router(emails.router, prefix="/api", tags=["Emails"])
+
+    # Additional routes (will be added in later phases)
+    # from app.routes import webhooks, tracking, suppressions, domains, unsubscribe, dashboard
     # app.include_router(webhooks.router, prefix="/api", tags=["Webhooks"])
     # app.include_router(tracking.router, prefix="/api", tags=["Tracking"])
     # app.include_router(suppressions.router, prefix="/api", tags=["Suppressions"])
