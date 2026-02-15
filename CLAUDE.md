@@ -26,6 +26,19 @@ pytest tests/test_email_service.py -v  # Single file
 
 ---
 
+## Development Workflow
+
+### Phase Implementation Process
+1. Follow PLAN.md for each phase implementation
+2. After completing a phase:
+   - If you deviated from PLAN.md (changed schema, renamed fields, added/removed features), **update PLAN.md** to reflect the actual implementation
+   - Document the reason for the deviation in implementation notes
+   - Mark the phase as completed with checkboxes
+   - Add any important learnings or gotchas discovered during implementation
+3. This keeps PLAN.md as the single source of truth for the project's architecture
+
+---
+
 ## Architecture Rules
 
 ### Layer Responsibilities
