@@ -172,7 +172,7 @@ uvicorn app.main:app --reload --port 8000
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/domains` | Initiate domain verification |
+| `POST` | `/api/domains/verify` | Initiate domain verification |
 | `GET` | `/api/domains` | List all domains |
 | `GET` | `/api/domains/{domain}/records` | Get required DNS records |
 | `GET` | `/api/domains/{domain}/status` | Check verification status |

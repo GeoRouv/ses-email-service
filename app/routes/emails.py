@@ -33,6 +33,8 @@ async def send_email(
     - `SES_SEND_FAILED`: AWS SES failed to send the email
     - `EMAIL_SEND_FAILED`: Unexpected error during send
     - `DATABASE_ERROR`: Email sent but database save failed
+    - `RATE_LIMIT_EXCEEDED`: Hourly email rate limit exceeded (429)
+    - `SENDER_DOMAIN_NOT_VERIFIED`: Sender domain not verified in SES
 
     **Rate Limits:**
     - Configured via `EMAIL_RATE_LIMIT_PER_HOUR` setting
