@@ -295,7 +295,7 @@ def inject_pixel(html: str, message_id: str, base_url: str) -> str:
 async def record_open(db: AsyncSession, message_id: str):
     message = await get_message(db, message_id)
     if message and message.opened_at is None:
-        message.opened_at = datetime.utcnow()
+        message.opened_at = datetime.now(datetime.UTC)
         await db.flush()
 ```
 
@@ -313,8 +313,8 @@ def generate_unsubscribe_token(email: str, message_id: str) -> str:
     payload = {
         "email": email,
         "message_id": str(message_id),
-        "iat": datetime.utcnow(),
-        "exp": datetime.utcnow() + timedelta(days=30),
+        "iat": datetime.now(datetime.UTC),
+        "exp": datetime.now(datetime.UTC) + timedelta(days=30),
     }
     return jwt.encode(payload, settings.UNSUBSCRIBE_SECRET, algorithm="HS256")
 
@@ -377,7 +377,7 @@ Use HTMX attributes for modals, pagination, and inline updates:
 ### Metrics Query Pattern
 ```python
 async def get_dashboard_metrics(db: AsyncSession, days: int = 7):
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(datetime.UTC) - timedelta(days=days)
 
     total = await db.scalar(
         select(func.count()).where(Message.created_at >= since)
@@ -521,7 +521,7 @@ VERIFIED_DOMAIN=candidate-test.kubbly.com
 
 5. **URL encoding in click tracking**: Use `urllib.parse.quote(url, safe="")` to encode the original URL. Use `safe=""` to also encode `/` — otherwise URLs with paths break the query parameter.
 
-6. **Timezone consistency**: Store all timestamps as UTC. Use `datetime.utcnow()` or `datetime.now(timezone.utc)`. PostgreSQL `TIMESTAMP WITH TIME ZONE` stores everything as UTC.
+6. **Timezone consistency**: Store all timestamps as UTC. Use `datetime.now(datetime.UTC)` or `datetime.now(timezone.utc)`. PostgreSQL `TIMESTAMP WITH TIME ZONE` stores everything as UTC.
 
 7. **Idempotent webhook processing**: SES/SNS may deliver the same event multiple times. Check if the event already exists before inserting. Use the SNS `MessageId` as a dedup key.
 

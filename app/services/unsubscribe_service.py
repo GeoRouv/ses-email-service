@@ -1,7 +1,7 @@
 """Unsubscribe service for JWT token generation, validation, and processing."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import jwt
@@ -28,8 +28,8 @@ def generate_unsubscribe_token(email: str, message_id: str) -> str:
     payload = {
         "email": email,
         "message_id": message_id,
-        "iat": datetime.utcnow(),
-        "exp": datetime.utcnow() + timedelta(days=30),
+        "iat": datetime.now(timezone.utc),
+        "exp": datetime.now(timezone.utc) + timedelta(days=30),
     }
     return jwt.encode(payload, settings.UNSUBSCRIBE_SECRET, algorithm="HS256")
 
@@ -89,9 +89,7 @@ async def process_unsubscribe(db: AsyncSession, email: str) -> bool:
     email_lower = email.lower()
 
     # Check if already suppressed (double-submit prevention)
-    result = await db.execute(
-        select(Suppression).where(Suppression.email == email_lower)
-    )
+    result = await db.execute(select(Suppression).where(Suppression.email == email_lower))
     existing = result.scalar_one_or_none()
 
     if existing:

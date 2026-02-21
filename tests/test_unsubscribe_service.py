@@ -1,6 +1,6 @@
 """Tests for unsubscribe service."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import jwt
@@ -48,8 +48,8 @@ class TestValidateToken:
         payload = {
             "email": "user@example.com",
             "message_id": "msg-123",
-            "iat": datetime.utcnow() - timedelta(days=31),
-            "exp": datetime.utcnow() - timedelta(days=1),
+            "iat": datetime.now(timezone.utc) - timedelta(days=31),
+            "exp": datetime.now(timezone.utc) - timedelta(days=1),
         }
         token = jwt.encode(payload, settings.UNSUBSCRIBE_SECRET, algorithm="HS256")
         result = validate_unsubscribe_token(token)
@@ -59,11 +59,12 @@ class TestValidateToken:
         result = validate_unsubscribe_token("invalid-garbage-token")
         assert result is None
 
+    @pytest.mark.filterwarnings("ignore::jwt.warnings.InsecureKeyLengthWarning")
     def test_wrong_secret(self):
         payload = {
             "email": "user@example.com",
             "message_id": "msg-123",
-            "exp": datetime.utcnow() + timedelta(days=30),
+            "exp": datetime.now(timezone.utc) + timedelta(days=30),
         }
         token = jwt.encode(payload, "wrong-secret", algorithm="HS256")
         result = validate_unsubscribe_token(token)

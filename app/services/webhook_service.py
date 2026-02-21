@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -31,9 +31,7 @@ async def get_message_by_ses_id(db: AsyncSession, ses_message_id: str) -> Messag
     if ses_message_id.startswith("<") and ses_message_id.endswith(">"):
         ses_message_id = ses_message_id[1:-1]
 
-    result = await db.execute(
-        select(Message).where(Message.ses_message_id == ses_message_id)
-    )
+    result = await db.execute(select(Message).where(Message.ses_message_id == ses_message_id))
     return result.scalar_one_or_none()
 
 
@@ -62,12 +60,11 @@ async def handle_delivery(db: AsyncSession, event: dict[str, Any]) -> None:
     valid_transitions = {"sent", "deferred"}
     if message.status in valid_transitions:
         message.status = "delivered"
-        message.updated_at = datetime.utcnow()
+        message.updated_at = datetime.now(timezone.utc)
         logger.info(f"Message {message.id} marked as delivered")
     else:
         logger.warning(
-            f"Ignoring delivery event for message {message.id} "
-            f"in status {message.status}"
+            f"Ignoring delivery event for message {message.id} " f"in status {message.status}"
         )
 
     # Store event
@@ -116,7 +113,7 @@ async def handle_bounce(db: AsyncSession, event: dict[str, Any]) -> None:
 
     # Update status
     message.status = "bounced"
-    message.updated_at = datetime.utcnow()
+    message.updated_at = datetime.now(timezone.utc)
 
     # Store event
     event_record = Event(
@@ -165,7 +162,7 @@ async def handle_complaint(db: AsyncSession, event: dict[str, Any]) -> None:
 
     # Update status (complaints can come after delivery)
     message.status = "complained"
-    message.updated_at = datetime.utcnow()
+    message.updated_at = datetime.now(timezone.utc)
 
     # Store event
     event_record = Event(
@@ -222,10 +219,10 @@ async def handle_delivery_delay(db: AsyncSession, event: dict[str, Any]) -> None
 
         # Set first_deferred_at if not already set
         if message.first_deferred_at is None:
-            message.first_deferred_at = datetime.utcnow()
+            message.first_deferred_at = datetime.now(timezone.utc)
             logger.info(f"Message {message.id} first deferred at {message.first_deferred_at}")
 
-    message.updated_at = datetime.utcnow()
+    message.updated_at = datetime.now(timezone.utc)
 
     # Store event
     event_record = Event(
@@ -264,7 +261,7 @@ async def handle_reject(db: AsyncSession, event: dict[str, Any]) -> None:
 
     # Update status to rejected (terminal state)
     message.status = "rejected"
-    message.updated_at = datetime.utcnow()
+    message.updated_at = datetime.now(timezone.utc)
 
     # Store event
     event_record = Event(
@@ -293,9 +290,7 @@ async def add_to_suppression_list(
         reason: Suppression reason
     """
     # Check if already suppressed
-    result = await db.execute(
-        select(Suppression).where(Suppression.email == email.lower())
-    )
+    result = await db.execute(select(Suppression).where(Suppression.email == email.lower()))
     existing = result.scalar_one_or_none()
 
     if existing:

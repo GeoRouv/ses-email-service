@@ -20,7 +20,7 @@ os.environ.update({
     "SNS_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789:test-topic",
     "VERIFIED_DOMAIN": "test.example.com",
     "APP_BASE_URL": "http://localhost:8000",
-    "UNSUBSCRIBE_SECRET": "test-secret-key-for-jwt",
+    "UNSUBSCRIBE_SECRET": "test-secret-key-for-jwt-minimum-32bytes!",
     "FALLBACK_REDIRECT_URL": "https://example.com",
     "ALLOWED_EMAIL_DOMAINS": "example.com,test.example.com",
     "ENVIRONMENT": "test",

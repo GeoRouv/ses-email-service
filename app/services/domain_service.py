@@ -1,7 +1,7 @@
 """Domain verification and management service."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from sqlalchemy import func, select
@@ -30,9 +30,7 @@ async def initiate_verification(db: AsyncSession, domain_name: str) -> Domain:
     domain_name = domain_name.lower().strip()
 
     # Check if domain already exists in DB
-    result = await db.execute(
-        select(Domain).where(Domain.domain == domain_name)
-    )
+    result = await db.execute(select(Domain).where(Domain.domain == domain_name))
     existing = result.scalar_one_or_none()
 
     if existing:
@@ -85,19 +83,23 @@ def build_dns_records(domain: Domain) -> list[DnsRecord]:
     records = []
 
     # TXT record for domain verification
-    records.append(DnsRecord(
-        type="TXT",
-        name=f"_amazonses.{domain.domain}",
-        value=domain.verification_token,
-    ))
+    records.append(
+        DnsRecord(
+            type="TXT",
+            name=f"_amazonses.{domain.domain}",
+            value=domain.verification_token,
+        )
+    )
 
     # CNAME records for DKIM (typically 3 tokens)
     for token in domain.dkim_tokens:
-        records.append(DnsRecord(
-            type="CNAME",
-            name=f"{token}._domainkey.{domain.domain}",
-            value=f"{token}.dkim.amazonses.com",
-        ))
+        records.append(
+            DnsRecord(
+                type="CNAME",
+                name=f"{token}._domainkey.{domain.domain}",
+                value=f"{token}.dkim.amazonses.com",
+            )
+        )
 
     return records
 
@@ -114,9 +116,7 @@ async def refresh_status(db: AsyncSession, domain_name: str) -> Domain | None:
         Updated domain record, or None if not found
     """
     # Find domain in DB
-    result = await db.execute(
-        select(Domain).where(Domain.domain == domain_name.lower())
-    )
+    result = await db.execute(select(Domain).where(Domain.domain == domain_name.lower()))
     domain = result.scalar_one_or_none()
 
     if not domain:
@@ -140,14 +140,13 @@ async def refresh_status(db: AsyncSession, domain_name: str) -> Domain | None:
 
     # Set verified_at timestamp when first verified
     if verification_status == "Success" and domain.verified_at is None:
-        domain.verified_at = datetime.utcnow()
+        domain.verified_at = datetime.now(timezone.utc)
 
     await db.flush()
     await db.refresh(domain)
 
     logger.info(
-        f"Domain {domain_name} status: verification={verification_status}, "
-        f"dkim={dkim_status}"
+        f"Domain {domain_name} status: verification={verification_status}, " f"dkim={dkim_status}"
     )
     return domain
 
@@ -163,9 +162,7 @@ async def get_domain(db: AsyncSession, domain_name: str) -> Domain | None:
     Returns:
         Domain if found, None otherwise
     """
-    result = await db.execute(
-        select(Domain).where(Domain.domain == domain_name.lower())
-    )
+    result = await db.execute(select(Domain).where(Domain.domain == domain_name.lower()))
     return result.scalar_one_or_none()
 
 
@@ -184,9 +181,7 @@ async def list_domains(db: AsyncSession) -> tuple[list[Domain], int]:
     total = count_result.scalar() or 0
 
     # Get all domains
-    result = await db.execute(
-        select(Domain).order_by(Domain.created_at.desc())
-    )
+    result = await db.execute(select(Domain).order_by(Domain.created_at.desc()))
     domains = result.scalars().all()
 
     return list(domains), total
@@ -205,9 +200,7 @@ async def delete_domain(db: AsyncSession, domain_name: str) -> bool:
     Returns:
         True if removed, False if not found
     """
-    result = await db.execute(
-        select(Domain).where(Domain.domain == domain_name.lower())
-    )
+    result = await db.execute(select(Domain).where(Domain.domain == domain_name.lower()))
     domain = result.scalar_one_or_none()
 
     if not domain:

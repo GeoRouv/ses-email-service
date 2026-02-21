@@ -1,7 +1,7 @@
 """Tracking service for email opens and clicks."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
@@ -31,9 +31,7 @@ async def get_message_by_id(db: AsyncSession, message_id: UUID | str) -> Message
             logger.warning(f"Invalid message ID format: {message_id}")
             return None
 
-    result = await db.execute(
-        select(Message).where(Message.id == message_id)
-    )
+    result = await db.execute(select(Message).where(Message.id == message_id))
     return result.scalar_one_or_none()
 
 
@@ -62,8 +60,8 @@ async def record_open(db: AsyncSession, message_id: str) -> bool:
         return False
 
     # Record open timestamp
-    message.opened_at = datetime.utcnow()
-    message.updated_at = datetime.utcnow()
+    message.opened_at = datetime.now(timezone.utc)
+    message.updated_at = datetime.now(timezone.utc)
 
     await db.flush()
 
@@ -96,7 +94,7 @@ async def record_click(db: AsyncSession, message_id: str, url: str) -> bool:
         id=uuid4(),
         message_id=message.id,
         url=url,
-        clicked_at=datetime.utcnow(),
+        clicked_at=datetime.now(timezone.utc),
     )
 
     db.add(click_event)
@@ -117,9 +115,7 @@ async def get_click_count(db: AsyncSession, message_id: UUID) -> int:
     Returns:
         Number of clicks
     """
-    result = await db.execute(
-        select(ClickEvent).where(ClickEvent.message_id == message_id)
-    )
+    result = await db.execute(select(ClickEvent).where(ClickEvent.message_id == message_id))
     clicks = result.scalars().all()
     return len(clicks)
 
@@ -136,9 +132,7 @@ async def get_unique_click_count(db: AsyncSession, message_id: UUID) -> int:
         Number of unique URLs clicked
     """
     result = await db.execute(
-        select(ClickEvent.url)
-        .where(ClickEvent.message_id == message_id)
-        .distinct()
+        select(ClickEvent.url).where(ClickEvent.message_id == message_id).distinct()
     )
     unique_urls = result.scalars().all()
     return len(unique_urls)

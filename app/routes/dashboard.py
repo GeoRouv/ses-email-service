@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.database import get_session
 from app.services import dashboard_service, domain_service, suppression_service
@@ -82,7 +82,10 @@ async def activity_list(
 ) -> HTMLResponse:
     """Render activity list with paginated messages."""
     activity = await dashboard_service.get_activity_list(
-        db, page=page, per_page=25, status_filter=status,
+        db,
+        page=page,
+        per_page=25,
+        status_filter=status,
     )
 
     context = {
@@ -133,7 +136,9 @@ async def suppressions_view(
 ) -> HTMLResponse:
     """Render suppression list management page."""
     suppressions, total = await suppression_service.get_suppressions(
-        db, page=page, page_size=25,
+        db,
+        page=page,
+        page_size=25,
     )
 
     per_page = 25
@@ -190,6 +195,6 @@ async def deferred_view(
             "active_page": "deferred",
             "messages": messages,
             "total": total,
-            "now": datetime.utcnow(),
+            "now": datetime.now(timezone.utc),
         },
     )

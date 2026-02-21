@@ -1,7 +1,7 @@
 """Dashboard metrics and analytics service."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
@@ -30,61 +30,94 @@ async def get_dashboard_metrics(
     Returns:
         Dictionary with all dashboard metrics
     """
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
 
     # Total sent
-    total_sent = await db.scalar(
-        select(func.count()).select_from(Message).where(
-            Message.created_at >= since,
+    total_sent = (
+        await db.scalar(
+            select(func.count())
+            .select_from(Message)
+            .where(
+                Message.created_at >= since,
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # Delivered count
-    delivered = await db.scalar(
-        select(func.count()).select_from(Message).where(
-            Message.created_at >= since,
-            Message.status == "delivered",
+    delivered = (
+        await db.scalar(
+            select(func.count())
+            .select_from(Message)
+            .where(
+                Message.created_at >= since,
+                Message.status == "delivered",
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # Bounced count
-    bounced = await db.scalar(
-        select(func.count()).select_from(Message).where(
-            Message.created_at >= since,
-            Message.status == "bounced",
+    bounced = (
+        await db.scalar(
+            select(func.count())
+            .select_from(Message)
+            .where(
+                Message.created_at >= since,
+                Message.status == "bounced",
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # Opened count
-    opened = await db.scalar(
-        select(func.count()).select_from(Message).where(
-            Message.created_at >= since,
-            Message.opened_at.isnot(None),
+    opened = (
+        await db.scalar(
+            select(func.count())
+            .select_from(Message)
+            .where(
+                Message.created_at >= since,
+                Message.opened_at.isnot(None),
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # Deferred count
-    deferred = await db.scalar(
-        select(func.count()).select_from(Message).where(
-            Message.created_at >= since,
-            Message.status == "deferred",
+    deferred = (
+        await db.scalar(
+            select(func.count())
+            .select_from(Message)
+            .where(
+                Message.created_at >= since,
+                Message.status == "deferred",
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # Complained count
-    complained = await db.scalar(
-        select(func.count()).select_from(Message).where(
-            Message.created_at >= since,
-            Message.status == "complained",
+    complained = (
+        await db.scalar(
+            select(func.count())
+            .select_from(Message)
+            .where(
+                Message.created_at >= since,
+                Message.status == "complained",
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # Click count (unique messages with clicks)
-    clicked_messages = await db.scalar(
-        select(func.count(func.distinct(ClickEvent.message_id))).where(
-            ClickEvent.clicked_at >= since,
+    clicked_messages = (
+        await db.scalar(
+            select(func.count(func.distinct(ClickEvent.message_id))).where(
+                ClickEvent.clicked_at >= since,
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # Calculate rates (use total_sent as denominator for all rates
     # so metrics work even before delivery webhooks are processed)
@@ -123,21 +156,15 @@ async def get_daily_volume(
     Returns:
         Dictionary with labels and datasets for Chart.js
     """
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
 
     # Query daily counts by status
     result = await db.execute(
         select(
             cast(Message.created_at, Date).label("day"),
-            func.count().filter(
-                Message.status.in_(["sent", "delivered"])
-            ).label("delivered"),
-            func.count().filter(
-                Message.status == "bounced"
-            ).label("bounced"),
-            func.count().filter(
-                Message.status == "deferred"
-            ).label("deferred"),
+            func.count().filter(Message.status.in_(["sent", "delivered"])).label("delivered"),
+            func.count().filter(Message.status == "bounced").label("bounced"),
+            func.count().filter(Message.status == "deferred").label("deferred"),
         )
         .where(Message.created_at >= since)
         .group_by(cast(Message.created_at, Date))
@@ -154,7 +181,7 @@ async def get_daily_volume(
     row_map = {str(row.day): row for row in rows}
 
     for i in range(days):
-        day = (datetime.utcnow() - timedelta(days=days - 1 - i)).date()
+        day = (datetime.now(timezone.utc) - timedelta(days=days - 1 - i)).date()
         day_str = str(day)
         labels.append(day.strftime("%b %d"))
 
@@ -208,9 +235,7 @@ async def get_activity_list(
     # Get paginated results
     offset = (page - 1) * per_page
     result = await db.execute(
-        query.order_by(Message.created_at.desc())
-        .offset(offset)
-        .limit(per_page)
+        query.order_by(Message.created_at.desc()).offset(offset).limit(per_page)
     )
     messages = result.scalars().all()
 
@@ -289,15 +314,17 @@ async def get_deferred_messages(
         delay_events = [e for e in msg.events if e.event_type == "delay"]
         latest_delay = max(delay_events, key=lambda e: e.timestamp) if delay_events else None
 
-        enriched.append({
-            "id": msg.id,
-            "to_email": msg.to_email,
-            "from_email": msg.from_email,
-            "subject": msg.subject,
-            "first_deferred_at": msg.first_deferred_at,
-            "created_at": msg.created_at,
-            "delay_type": latest_delay.delay_type if latest_delay else None,
-            "delay_reason": latest_delay.delay_reason if latest_delay else None,
-        })
+        enriched.append(
+            {
+                "id": msg.id,
+                "to_email": msg.to_email,
+                "from_email": msg.from_email,
+                "subject": msg.subject,
+                "first_deferred_at": msg.first_deferred_at,
+                "created_at": msg.created_at,
+                "delay_type": latest_delay.delay_type if latest_delay else None,
+                "delay_reason": latest_delay.delay_reason if latest_delay else None,
+            }
+        )
 
     return enriched, len(enriched)
