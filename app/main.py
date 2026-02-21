@@ -3,13 +3,14 @@
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.config import settings
+from app.dependencies import require_auth
 
 
 @asynccontextmanager
@@ -70,13 +71,17 @@ def create_app() -> FastAPI:
         dashboard, domains, emails, suppressions, tracking, unsubscribe, webhooks,
     )
 
-    app.include_router(emails.router, prefix="/api", tags=["Emails"])
+    # Protected routes (require HTTP Basic Auth)
+    auth = [Depends(require_auth)]
+    app.include_router(emails.router, prefix="/api", tags=["Emails"], dependencies=auth)
+    app.include_router(suppressions.router, prefix="/api", tags=["Suppressions"], dependencies=auth)
+    app.include_router(domains.router, prefix="/api", tags=["Domains"], dependencies=auth)
+    app.include_router(dashboard.router, tags=["Dashboard"], dependencies=auth)
+
+    # Public routes (no auth — accessed by AWS, email clients, recipients)
     app.include_router(webhooks.router, prefix="/api", tags=["Webhooks"])
     app.include_router(tracking.router, prefix="/api", tags=["Tracking"])
-    app.include_router(suppressions.router, prefix="/api", tags=["Suppressions"])
-    app.include_router(domains.router, prefix="/api", tags=["Domains"])
     app.include_router(unsubscribe.router, tags=["Unsubscribe"])
-    app.include_router(dashboard.router, tags=["Dashboard"])
 
     return app
 

@@ -577,6 +577,24 @@ ses-email-service/
 
 **Commit**: `docs: README, deployment, API documentation`
 
+### Phase 10: HTTP Basic Auth ✅ COMPLETED
+**Goal**: Protect deployed app from public access
+
+- [x] Add `AUTH_USERNAME` and `AUTH_PASSWORD` to `app/config.py`
+- [x] Create `app/dependencies.py` with `require_auth` dependency (HTTPBasic + `secrets.compare_digest`)
+- [x] Apply auth at router level in `app/main.py` for protected routes (emails, suppressions, domains, dashboard)
+- [x] Keep public routes unauthenticated (webhooks, tracking, unsubscribe, health, docs)
+- [x] Update `.env.example` and `.env` with auth vars
+- [x] All 168 tests pass
+
+**Implementation Notes**:
+- Used FastAPI's built-in `HTTPBasic` security — no new dependencies
+- Auth applied at router level via `dependencies=[Depends(require_auth)]`, no changes to individual endpoints
+- `secrets.compare_digest` used to prevent timing attacks
+- Browser handles the login prompt natively — no login page needed
+
+**Commit**: `feat: add HTTP Basic Auth for API and dashboard protection`
+
 ---
 
 ## Status State Machine (Reference)

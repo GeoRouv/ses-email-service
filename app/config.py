@@ -63,6 +63,10 @@ class Settings(BaseSettings):
         description="Maximum emails per hour (for sandbox testing)",
     )
 
+    # Authentication
+    AUTH_USERNAME: str = Field(default="admin", description="HTTP Basic Auth username")
+    AUTH_PASSWORD: str = Field(default="change-me-in-production", description="HTTP Basic Auth password")
+
     # Logging
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
 
