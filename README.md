@@ -8,25 +8,25 @@ Production-ready email delivery service built on AWS SES with click/open trackin
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         FastAPI Application                         │
 │                                                                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
-│  │  Routes   │  │ Services │  │  Models  │  │   Utils           │  │
-│  │ (HTTP)    │→ │ (Logic)  │→ │  (ORM)   │  │ - Email validator │  │
-│  │          │  │          │  │          │  │ - HTML processor  │  │
-│  │ emails   │  │ email    │  │ message  │  │ - SNS validator   │  │
-│  │ webhooks │  │ webhook  │  │ event    │  │ - Email masking   │  │
-│  │ tracking │  │ tracking │  │ click    │  └───────────────────┘  │
-│  │ suppress │  │ suppress │  │ suppress │                         │
-│  │ domains  │  │ domain   │  │ domain   │                         │
-│  │ unsub    │  │ unsub    │  │          │                         │
-│  │ dashboard│  │ dashboard│  │          │                         │
-│  └──────────┘  └──────────┘  └──────────┘                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────────────┐    │
+│  │  Routes  │  │ Services │  │  Models  │  │   Utils           │    │
+│  │ (HTTP)   │→ │ (Logic)  │→ │  (ORM)   │  │ - Email validator │    │
+│  │          │  │          │  │          │  │ - HTML processor  │    │
+│  │ emails   │  │ email    │  │ message  │  │ - SNS validator   │    │
+│  │ webhooks │  │ webhook  │  │ event    │  │ - Email masking   │    │
+│  │ tracking │  │ tracking │  │ click    │  └───────────────────┘    │
+│  │ suppress │  │ suppress │  │ suppress │                           │
+│  │ domains  │  │ domain   │  │ domain   │                           │
+│  │ unsub    │  │ unsub    │  │          │                           │
+│  │ dashboard│  │ dashboard│  │          │                           │
+│  └──────────┘  └──────────┘  └──────────┘                           │
 │                      │              │                               │
 │                      ▼              ▼                               │
-│               ┌────────────┐ ┌────────────┐                        │
-│               │ SES Client │ │ PostgreSQL │                        │
-│               │ (aioboto3) │ │ (asyncpg)  │                        │
-│               └──────┬─────┘ └────────────┘                        │
-└──────────────────────┼─────────────────────────────────────────────┘
+│               ┌────────────┐ ┌────────────┐                         │
+│               │ SES Client │ │ PostgreSQL │                         │
+│               │ (aioboto3) │ │ (asyncpg)  │                         │
+│               └──────┬─────┘ └────────────┘                         │
+└──────────────────────┼────────────────────────────────────────────-─┘
                        │
           ┌────────────┼────────────┐
           ▼            ▼            ▼
@@ -36,8 +36,8 @@ Production-ready email delivery service built on AWS SES with click/open trackin
     └──────────┘ └────┬─────┘ └──────────┘
                       │
                       ▼
-               POST /api/webhooks/ses
-               (delivery, bounce, complaint, delay, reject)
+            POST /api/webhooks/ses
+   (delivery, bounce, complaint, delay, reject)
 ```
 
 **Layer responsibilities:**
