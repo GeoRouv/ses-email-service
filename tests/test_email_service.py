@@ -8,11 +8,31 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from datetime import datetime, timedelta, timezone
+
 from app.models.message import Message
 from app.models.suppression import Suppression
 from app.schemas.email import SendEmailRequest
-from app.services.email_service import check_suppression, send_email
+from app.services.email_service import check_rate_limit, check_suppression, send_email
 from app.services.ses_client import SESError
+
+
+async def _add_message(db: AsyncSession, created_at: datetime | None = None) -> Message:
+    """Helper to add a sent message."""
+    msg = Message(
+        id=uuid4(),
+        to_email=f"to-{uuid4().hex[:8]}@example.com",
+        from_email="sender@test.example.com",
+        subject="Test",
+        html_content="<p>test</p>",
+        status="sent",
+        ses_message_id=f"ses-{uuid4().hex[:8]}",
+    )
+    if created_at:
+        msg.created_at = created_at
+    db.add(msg)
+    await db.flush()
+    return msg
 
 
 async def _add_suppression(db: AsyncSession, email: str) -> None:
@@ -170,3 +190,53 @@ class TestSendEmail:
         with pytest.raises(HTTPException) as exc_info:
             await send_email(db, request)
         assert exc_info.value.status_code == 403
+
+    @patch("app.services.email_service.ses_client")
+    @patch("app.services.email_service.settings")
+    async def test_rate_limit_exceeded(self, mock_settings, mock_ses, db: AsyncSession):
+        # Set a low limit for testing
+        mock_settings.EMAIL_RATE_LIMIT_PER_HOUR = 2
+        mock_settings.allowed_domains_list = ["example.com", "test.example.com"]
+        mock_settings.VERIFIED_DOMAIN = "test.example.com"
+        mock_settings.APP_BASE_URL = "http://localhost:8000"
+        mock_settings.UNSUBSCRIBE_SECRET = "test-secret-key-for-jwt-minimum-32bytes!"
+        # Return unique SES IDs to avoid unique constraint violation
+        mock_ses.send_email = AsyncMock(side_effect=lambda **kw: f"ses-rate-{uuid4().hex[:8]}")
+
+        # Send 2 emails to hit the limit
+        for _ in range(2):
+            await send_email(db, self._make_request())
+
+        # Third should be rejected
+        with pytest.raises(HTTPException) as exc_info:
+            await send_email(db, self._make_request())
+        assert exc_info.value.status_code == 429
+        assert "RATE_LIMIT_EXCEEDED" in str(exc_info.value.detail)
+
+
+class TestCheckRateLimit:
+    async def test_under_limit(self, db: AsyncSession):
+        exceeded, count = await check_rate_limit(db)
+        assert exceeded is False
+        assert count == 0
+
+    async def test_at_limit(self, db: AsyncSession):
+        # Add messages up to the limit (default 15 in test env)
+        with patch("app.services.email_service.settings") as mock_settings:
+            mock_settings.EMAIL_RATE_LIMIT_PER_HOUR = 3
+            for _ in range(3):
+                await _add_message(db)
+            exceeded, count = await check_rate_limit(db)
+            assert exceeded is True
+            assert count == 3
+
+    async def test_old_messages_not_counted(self, db: AsyncSession):
+        # Add a message from 2 hours ago — should not count
+        two_hours_ago = datetime.now(timezone.utc) - timedelta(hours=2)
+        await _add_message(db, created_at=two_hours_ago)
+
+        with patch("app.services.email_service.settings") as mock_settings:
+            mock_settings.EMAIL_RATE_LIMIT_PER_HOUR = 3
+            exceeded, count = await check_rate_limit(db)
+            assert exceeded is False
+            assert count == 0

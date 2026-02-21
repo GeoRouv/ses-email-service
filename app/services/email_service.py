@@ -1,11 +1,11 @@
 """Email sending service with business logic."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi import status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -38,6 +38,23 @@ async def check_suppression(db: AsyncSession, email: str) -> bool:
     )
     suppression = result.scalar_one_or_none()
     return suppression is not None
+
+
+async def check_rate_limit(db: AsyncSession) -> tuple[bool, int]:
+    """
+    Check if the hourly email rate limit has been exceeded.
+
+    Returns:
+        Tuple of (is_exceeded, current_count)
+    """
+    one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+    count = await db.scalar(
+        select(func.count()).select_from(Message).where(
+            Message.created_at >= one_hour_ago
+        )
+    )
+    count = count or 0
+    return count >= settings.EMAIL_RATE_LIMIT_PER_HOUR, count
 
 
 async def send_email(db: AsyncSession, request: SendEmailRequest) -> SendEmailResponse:
@@ -115,6 +132,23 @@ async def send_email(db: AsyncSession, request: SendEmailRequest) -> SendEmailRe
                     "pre_verified_domain": settings.VERIFIED_DOMAIN,
                 },
             )
+
+    # Check rate limit
+    exceeded, current_count = await check_rate_limit(db)
+    if exceeded:
+        logger.warning(
+            f"Rate limit exceeded: {current_count}/{settings.EMAIL_RATE_LIMIT_PER_HOUR} emails/hour"
+        )
+        raise_api_error(
+            code="RATE_LIMIT_EXCEEDED",
+            message=f"Hourly email limit reached ({settings.EMAIL_RATE_LIMIT_PER_HOUR}/hour). "
+            "Please try again later.",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            details={
+                "limit": settings.EMAIL_RATE_LIMIT_PER_HOUR,
+                "current_count": current_count,
+            },
+        )
 
     # Create message record
     message = Message(

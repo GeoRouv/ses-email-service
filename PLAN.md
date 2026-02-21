@@ -643,7 +643,7 @@ Invalid/ignored transitions (handle gracefully, log warning):
 ---
 
 ## Bonus Features (if time permits)
-1. **App-level rate limiting** — Token bucket, show in dashboard
+1. ~~**App-level rate limiting**~~ ✅ — DB-based hourly count in `email_service.py`, returns 429 when `EMAIL_RATE_LIMIT_PER_HOUR` exceeded
 2. **Batch send endpoint** — `POST /api/emails/send-batch` for multiple recipients
 3. **Email preview** — Dashboard page to preview HTML before sending
 4. **Export metrics** — CSV download of email activity
