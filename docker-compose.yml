@@ -42,6 +42,8 @@ services:
       - FALLBACK_REDIRECT_URL=${FALLBACK_REDIRECT_URL:-https://example.com}
       - ALLOWED_EMAIL_DOMAINS=${ALLOWED_EMAIL_DOMAINS:-kubbly.com}
       - EMAIL_RATE_LIMIT_PER_HOUR=${EMAIL_RATE_LIMIT_PER_HOUR:-15}
+      - AUTH_USERNAME=${AUTH_USERNAME:-admin}
+      - AUTH_PASSWORD=${AUTH_PASSWORD:-change-me-in-production}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - ENVIRONMENT=${ENVIRONMENT:-development}
     depends_on:

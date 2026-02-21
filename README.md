@@ -135,6 +135,8 @@ uvicorn app.main:app --reload --port 8000
 | `FALLBACK_REDIRECT_URL` | No | `https://example.com` | Redirect for invalid tracking IDs |
 | `ALLOWED_EMAIL_DOMAINS` | No | `kubbly.com` | Comma-separated recipient domain allowlist |
 | `EMAIL_RATE_LIMIT_PER_HOUR` | No | `15` | Hourly send rate limit |
+| `AUTH_USERNAME` | No | `admin` | HTTP Basic Auth username |
+| `AUTH_PASSWORD` | No | `change-me-in-production` | HTTP Basic Auth password |
 | `LOG_LEVEL` | No | `INFO` | Logging level |
 | `ENVIRONMENT` | No | `development` | Environment name |
 

@@ -166,6 +166,9 @@ def process_email_html(
     Returns:
         Processed HTML with tracking enabled
     """
+    # Sanitize HTML (remove dangerous tags like script, iframe)
+    html = sanitize_html(html)
+
     # Rewrite URLs for click tracking
     html = rewrite_urls(html, message_id, base_url)
 
