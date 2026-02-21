@@ -1,0 +1,242 @@
+{
+  "info": {
+    "name": "SES Email Service",
+    "description": "API collection for the SES Email Delivery Service. Set auth_username and auth_password in collection variables before use.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{auth_username}}", "type": "string" },
+      { "key": "password", "value": "{{auth_password}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "auth_username", "value": "" },
+    { "key": "auth_password", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health & Root",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/health" },
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/" },
+            "auth": { "type": "noauth" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Emails",
+      "item": [
+        {
+          "name": "Send Email",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/emails/send" },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_email\": \"recipient@kubbly.com\",\n  \"from_email\": \"sender@candidate-test.kubbly.com\",\n  \"from_name\": \"SES Email Service\",\n  \"subject\": \"Test Email\",\n  \"html_content\": \"<h1>Hello!</h1><p>This is a test email with a <a href=\\\"https://example.com\\\">link</a>.</p>\",\n  \"text_content\": \"Hello! This is a test email.\",\n  \"metadata\": {\n    \"campaign_id\": \"test-001\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Suppressions",
+      "item": [
+        {
+          "name": "List Suppressions",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/suppressions?page=1&page_size=25" }
+          }
+        },
+        {
+          "name": "List Suppressions (filtered)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/suppressions?page=1&page_size=25&reason=hard_bounce" }
+          }
+        },
+        {
+          "name": "Check Suppression",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/suppressions/check/user@example.com" }
+          }
+        },
+        {
+          "name": "Add Suppression",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/suppressions" },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"block-this@example.com\",\n  \"reason\": \"manual\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Suppression",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/api/suppressions/block-this@example.com" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Domains",
+      "item": [
+        {
+          "name": "Verify Domain",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/domains/verify" },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain\": \"example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Domains",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/domains" }
+          }
+        },
+        {
+          "name": "Get Domain Records",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/domains/example.com/records" }
+          }
+        },
+        {
+          "name": "Check Domain Status",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/domains/example.com/status" }
+          }
+        },
+        {
+          "name": "Delete Domain",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/api/domains/example.com" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard API",
+      "item": [
+        {
+          "name": "Get Metrics (7 days)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/dashboard/metrics?days=7" }
+          }
+        },
+        {
+          "name": "Get Metrics (30 days)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/dashboard/metrics?days=30" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tracking (Public)",
+      "item": [
+        {
+          "name": "Track Click",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/track/click/MESSAGE_ID_HERE?url=https%3A%2F%2Fexample.com" },
+            "auth": { "type": "noauth" },
+            "description": "Replace MESSAGE_ID_HERE with a real message UUID. Returns 302 redirect."
+          }
+        },
+        {
+          "name": "Track Open",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/track/open/MESSAGE_ID_HERE" },
+            "auth": { "type": "noauth" },
+            "description": "Replace MESSAGE_ID_HERE with a real message UUID. Returns 1x1 GIF."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks (Public)",
+      "item": [
+        {
+          "name": "SES Webhook (simulate delivery)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/webhooks/ses" },
+            "auth": { "type": "noauth" },
+            "header": [
+              { "key": "Content-Type", "value": "text/plain" },
+              { "key": "x-amz-sns-message-type", "value": "Notification" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Type\": \"Notification\",\n  \"MessageId\": \"test-sns-message-id\",\n  \"TopicArn\": \"arn:aws:sns:us-east-1:148761646433:ses-assessment-events\",\n  \"Message\": \"{\\\"eventType\\\":\\\"Delivery\\\",\\\"mail\\\":{\\\"messageId\\\":\\\"SES_MESSAGE_ID_HERE\\\",\\\"timestamp\\\":\\\"2024-01-15T10:30:00.000Z\\\"},\\\"delivery\\\":{\\\"timestamp\\\":\\\"2024-01-15T10:30:01.000Z\\\",\\\"recipients\\\":[\\\"recipient@example.com\\\"]}}\",\n  \"Timestamp\": \"2024-01-15T10:30:00.000Z\",\n  \"SignatureVersion\": \"1\",\n  \"Signature\": \"test\",\n  \"SigningCertURL\": \"https://sns.us-east-1.amazonaws.com/SimpleNotificationService-test.pem\"\n}",
+              "description": "Replace SES_MESSAGE_ID_HERE with a real SES message ID from a sent email."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Unsubscribe (Public)",
+      "item": [
+        {
+          "name": "Unsubscribe Page (GET)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/unsubscribe/TOKEN_HERE" },
+            "auth": { "type": "noauth" },
+            "description": "Replace TOKEN_HERE with a real JWT token from an email's unsubscribe link."
+          }
+        },
+        {
+          "name": "Process Unsubscribe (POST)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/unsubscribe/TOKEN_HERE" },
+            "auth": { "type": "noauth" },
+            "description": "Replace TOKEN_HERE with a real JWT token. Adds email to suppression list."
+          }
+        }
+      ]
+    }
+  ]
+}
